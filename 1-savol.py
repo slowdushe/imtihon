@@ -1,40 +1,52 @@
 import asyncio
-import io
+import os
 import httpx
-from anyio.streams import file
 
 
-class FileManager:
-    def __init__(self, filename, mode):
-        self.filename = filename
+
+class FayilOqish:
+    def __init__(self, path, mode):
+        self.path = path
         self.mode = mode
-        self.file = file
 
     def __enter__(self):
-        self.file = open(self.filename, self.mode)
-        return self.file
+        file = open(file=self.path, mode=self.mode)
+        self.file = file
+        return file
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.file:
-            self.file.close()
-
-
-async def a_data(url):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url)
-        return response.text, response.status_code
+    def __exit__(self, *args, **kwargs):
+        self.file.close()
 
 
+
+def get_url_response():
+    url = 'http://164.92.64.76/desc/'
+    response = httpx.post(url)
+    return response.status_code
+
+
+async def RaiderFilePath():
+    path = 'descriptions'
+    status_code = str(get_url_response())
+    file_name = os.listdir(path)
+    for i in file_name:
+        
+        with FayilOqish(path +'/'+ i, 'r') as f:
+            split_data = f.read().split('\n')
+            name = split_data[0]
+            price = split_data[1]
+            text = split_data[2]
+
+        with FayilOqish("Response.txt", 'a+') as w:
+            w.write(str(i + ' ' + status_code + '\n'))
+
+        print(name, price, text)
+
+            
 async def main():
-    url = "http://164.92.64.76/desc/"
-    file_prefix = "Response_001.txt"
+    await asyncio.create_task(RaiderFilePath())
+    await asyncio.create_task(get_url_response())
+
+if __name__=='__main__':
+    asyncio.run(RaiderFilePath())
     
-    data, status_code = await a_data(url)
-
-    filename = f"{file_prefix}_{status_code}.txt"
-    with FileManager(filename, "w") as f:
-        f.write(data)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
